@@ -1,0 +1,225 @@
+<h2>Tabs Example</h2>
+
+<tabs-wrap>
+  <tabs-titles-wrap>
+    <tabs-single-title id="1" title = "1">
+      <span class="itemTest">
+        ADDDED ITEMS
+      </span>
+    </tabs-single-title>
+    <tabs-single-title id="2" title = "2"></tabs-single-title>
+    <tabs-single-title id="3" title = "3"></tabs-single-title>
+  </tabs-titles-wrap>
+  <tabs-content-wrap>
+    <tabs-single-content id="1">CONTENT 1</tabs-single-content>
+    <tabs-single-content id="2">CONTENT 2</tabs-single-content>
+    <tabs-single-content id="3">CONTENT 3</tabs-single-content>
+  </tabs-content-wrap>
+</tabs-wrap>
+
+<script>
+
+ // Top Level
+ //// Added for encapsulating
+ class WrapClass extends HTMLElement{
+   constructor(){
+     super();
+     this.event = new Event("tabOpen");
+   }
+   getTitles(){
+     return Array(...document.querySelector('tabs-titles-wrap').children);
+   }
+   getContent(){
+     return Array(...document.querySelector('tabs-content-wrap').children);
+   }
+ }
+
+
+ // Wrapper Class
+ //// Handles click events
+ class TabWrapper extends WrapClass{
+
+   connectedCallback() {
+
+     for (let item of this.children) {
+       item.addEventListener('click', e => {
+         this.clickEventOpen( e.target );
+       });
+     }
+
+   }
+
+   clickEventOpen( target ){
+
+     for (let item of this.children) {
+       this.clickEventClose( item );
+     }
+
+     target.setAttribute('open', true);
+
+   }
+
+   clickEventClose( target ){
+
+     target.setAttribute('open', false);
+
+   }
+
+ }
+
+ window.customElements.define('tabs-titles-wrap', TabWrapper);
+
+
+ // Title Events
+ //// Handles Title Items
+ const templateTitle = document.createElement('template');
+ templateTitle.innerHTML = `<slot name="tabs-single-title"></slot>`;
+
+ class TabsTitleWrapper extends WrapClass {
+
+   static get observedAttributes() {
+     return ['open', 'closed'];
+   }
+
+   constructor(){
+
+     super();
+
+     this.id = this.getAttribute('id');
+     this.element = this;
+
+     this.event = new Event("tabOpen",  {
+       bubbles: true,
+       detail: {
+         name:'tabOpen'
+       },
+       cancelable: true,
+       composed: false
+     });
+
+     this.attachShadow({mode: 'open'})
+       .appendChild(templateTitle.content.cloneNode(true));
+
+   }
+
+   connectedCallback() {
+
+     const { shadowRoot } = this;
+
+     shadowRoot
+       .querySelector('slot[name=tabs-single-title]')
+       .innerHTML = this.title;
+
+     if(this.innerHTML)
+       shadowRoot
+         .querySelector('slot[name=tabs-single-title]')
+         .insertAdjacentHTML('beforeend', this.innerHTML);
+
+   }
+
+   attributeChangedCallback(attrName, oldValue, newValue) {
+
+     if(
+       attrName == 'open' &&
+       newValue == 'true'
+     ){
+       for(let item of super.getContent()){
+
+         if (!item.getAttribute('id')) {
+           console.warn('No ID');
+           return;
+         }
+
+         if(item.getAttribute('id') == this.id){
+           this.element.dispatchEvent(this.event);
+           item.setAttribute('open', true);
+         }
+
+         if(item.getAttribute('id') !== this.id){
+           item.setAttribute('open', false);
+         }
+
+       }
+     }
+
+   }
+
+ }
+
+ window.customElements.define('tabs-single-title', TabsTitleWrapper);
+
+
+ // Content Events
+ //// Handles Content Items
+ const templateContent = document.createElement('template');
+ templateContent.innerHTML = `
+  <style>
+    :host slot[name=tabs-single-content]{display: none;}
+    :host([open=true]) slot[name=tabs-single-content]{display: inline-flex !important;}
+  </style>
+  <slot name="tabs-single-content"></slot>
+ `;
+
+ class TabsContentWrapper extends WrapClass{
+
+   constructor(){
+
+     super();
+
+     this.id = this.getAttribute('id');
+
+     this.attachShadow({mode: 'open'})
+       .appendChild(templateContent.content.cloneNode(true));
+
+   }
+
+   connectedCallback() {
+
+     const { shadowRoot } = this;
+
+     shadowRoot
+       .querySelector('slot[name=tabs-single-content]')
+       .innerHTML = this.innerHTML;
+
+   }
+
+ }
+ window.customElements.define('tabs-single-content', TabsContentWrapper);
+
+
+ // Event on open
+ window.onload = () => {
+
+  document.addEventListener("tabOpen", function(e) {
+    e.target.children[0].classList.toggle('openElement');
+    // console.log(`Now Open`);
+  });
+
+ };
+
+
+/*
+
+  Wrapper wraps the tab items
+  The tab wrapper has a event added to the single where if cliked changes its attrubte
+  This reports back and opens / closes depending on selected
+
+*/
+
+// https://github.com/GoogleChromeLabs/howto-components/blob/master/elements/howto-tabs/howto-tabs.js
+// https://nolanlawson.com/2021/01/03/options-for-styling-web-components/
+// https://codepen.io/calebdwilliams/pen/dawXJb?editors=1010
+// https://css-tricks.com/encapsulating-style-and-structure-with-shadow-dom/
+// https://css-tricks.com/styling-a-web-component/
+// https://googlechromelabs.github.io/howto-components/howto-tabs/#demo
+// https://css-tricks.com/an-introduction-to-web-components/
+
+</script>
+
+<style>
+
+  tabs-content-wrap {
+      display: block;
+  }
+
+</style>

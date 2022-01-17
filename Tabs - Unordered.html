@@ -1,0 +1,148 @@
+<h2>Tabs Example</h2>
+
+<tabs-wrap>
+  <tabs-single-wrap id="1" title = "1">
+    Content One
+  </tabs-single-wrap>
+  <tabs-single-wrap id="2" title = "2">
+    Content Two
+  </tabs-single-wrap>
+  <tabs-single-wrap id="3" title = "3">
+    Content Three
+  </tabs-single-wrap>
+</tabs-wrap>
+
+<script>
+
+// Wrapper - Template
+const templateWrap = document.createElement('template');
+templateWrap.innerHTML = `<div class="tabs-wrapper"></div>`;
+
+
+// Single - Template
+const templateSingle = document.createElement('template');
+templateSingle.innerHTML = `
+ <style>
+   :host slot[name=tabs-single-wrap-content]{display: none;}
+   :host([open=true]) slot[name=tabs-single-wrap-content]{display: inline-flex !important;}
+ </style>
+ <div class="tabs-single-wrap">
+   <slot name="tabs-single-wrap-title"></slot>
+   <slot name="tabs-single-wrap-content"></slot>
+ </div>`;
+
+
+// Single - Class
+class TabSingle extends HTMLElement{
+
+  static get observedAttributes() {
+    return ['open', 'closed'];
+  }
+
+  constructor(){
+
+    super();
+
+    this.attachShadow({mode: 'open'})
+      .appendChild(templateSingle.content.cloneNode(true));
+
+    this.wrap =
+      this.shadowRoot
+        .querySelector('.tabs-single-wrap');
+
+    this.event = new Event("tabOpen");
+
+  }
+
+  connectedCallback() {
+
+    const { shadowRoot } = this;
+
+    shadowRoot
+      .querySelector('slot[name=tabs-single-wrap-title]')
+      .innerHTML = this.title;
+
+    shadowRoot
+      .querySelector('slot[name=tabs-single-wrap-content]')
+      .innerHTML = this.innerHTML;
+
+  }
+
+  attributeChangedCallback(attrName, oldValue, newValue) {
+
+    if(
+      attrName == 'open' &&
+      newValue == 'true'
+    ){
+      document.dispatchEvent(this.event);
+    }
+
+  }
+
+  disconnectedCallback(){
+    console.log('disconnected');
+  }
+
+}
+
+customElements.define('tabs-single-wrap', TabSingle);
+
+
+// Wrapper - Class
+class TabWrapper extends HTMLElement{
+
+  connectedCallback() {
+
+    const { shadowRoot } = this;
+
+    for (let item of this.children) {
+      item.addEventListener('click', e => {
+        this.clickEventOpen( e.target );
+      });
+    }
+
+  }
+
+  clickEventOpen( target ){
+
+    for (let item of this.children) {
+      this.clickEventClose( item );
+    }
+
+    target.setAttribute('open', true);
+
+  }
+
+  clickEventClose( target ){
+
+    target.setAttribute('open', false);
+
+  }
+
+}
+
+window.customElements.define('tabs-wrap', TabWrapper);
+
+// Event on open
+window.onload = () => {
+ document.addEventListener("tabOpen", function(event) { // (1)
+   console.log(`Now Open`);
+ });
+};
+
+/*
+
+  Wrapper wraps the tab items
+  The tab wrapper has a event added to the single where if cliked changes its attrubte
+  This reports back and opens / closes depending on selected
+
+*/
+
+// https://nolanlawson.com/2021/01/03/options-for-styling-web-components/
+// https://codepen.io/calebdwilliams/pen/dawXJb?editors=1010
+// https://css-tricks.com/encapsulating-style-and-structure-with-shadow-dom/
+// https://css-tricks.com/styling-a-web-component/
+// https://googlechromelabs.github.io/howto-components/howto-tabs/#demo
+// https://css-tricks.com/an-introduction-to-web-components/
+
+</script>
